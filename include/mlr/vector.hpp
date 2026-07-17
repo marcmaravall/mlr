@@ -5,19 +5,15 @@
 #include <cassert>
 #include <cmath>
 
+#include "tensor.hpp"
+
 namespace mlr {
 
 template<std::size_t n>
-class vector {
-public:
-    std::array<double, n> mem{};
-
+class vector : public tensor<1, n> {
 public:
     vector() = default;
-    
-    vector(std::initializer_list<double> init) {
-        std::copy_n(init.begin(), std::min(init.size(), n), mem.begin());
-    }
+    vector(std::initializer_list<double> init) : tensor<1, n>(init) {}
     
     ~vector() = default;
 
@@ -29,39 +25,39 @@ public:
 public:
     double& operator[](std::size_t i) {
         assert(i < n);
-        return mem[i];
+        return this->mem[i];
     }
 
     const double& operator[](std::size_t i) const {
         assert(i < n);
-        return mem[i];
+        return this->mem[i];
     }
 
     vector operator+(const vector& rhs) const {
         vector r;
         for (std::size_t i = 0; i < n; ++i)
-            r[i] = mem[i] + rhs[i];
+            r[i] = this->mem[i] + rhs[i];
         return r;
     }
 
     vector operator-(const vector& rhs) const {
         vector r;
         for (std::size_t i = 0; i < n; ++i)
-            r[i] = mem[i] - rhs[i];
+            r[i] = this->mem[i] - rhs[i];
         return r;
     }
 
     vector operator*(const vector& rhs) const {
         vector r;
         for (std::size_t i = 0; i < n; ++i)
-            r[i] = mem[i] * rhs[i];
+            r[i] = this->mem[i] * rhs[i];
         return r;
     }
 
     vector operator*(double s) const {
         vector r;
         for (std::size_t i = 0; i < n; ++i)
-            r[i] = mem[i] * s;
+            r[i] = this->mem[i] * s;
         return r;
     }
 
@@ -69,7 +65,7 @@ public:
     double dot(const vector& rhs) const {
         double r = 0.0;
         for (std::size_t i = 0; i < n; ++i)
-            r += mem[i] * rhs[i];
+            r += this->mem[i] * rhs[i];
         return r;
     }
 

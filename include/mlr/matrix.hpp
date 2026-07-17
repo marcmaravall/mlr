@@ -6,24 +6,15 @@
 #include <cstddef>
 
 #include "vector.hpp"
+#include "tensor.hpp"
 
 namespace mlr {
 
 template<std::size_t rows, std::size_t cols>
-class matrix {
-public:
-    std::array<double, rows * cols> mem{};
-
+class matrix : public tensor<2, rows*cols> {
 public:
     matrix() = default;
-
-    matrix(std::initializer_list<double> init) : mem{} {
-        std::copy_n(
-            init.begin(),
-            std::min(init.size(), mem.size()),
-            mem.begin()
-        );
-    }
+    matrix(std::initializer_list<double> init) : tensor<2, rows*cols>(init) {}
 
     ~matrix() = default;
 
@@ -38,11 +29,11 @@ public:
 
 public:
     constexpr double& operator()(std::size_t row, std::size_t col) noexcept {
-        return mem[row * cols + col];
+        return this->mem[row * cols + col];
     }
 
     constexpr const double& operator()(std::size_t row, std::size_t col) const noexcept {
-        return mem[row * cols + col];
+        return this->mem[row * cols + col];
     }
 
 public:

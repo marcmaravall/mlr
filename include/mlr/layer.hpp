@@ -1,9 +1,11 @@
 #pragma once
 
+#include "tensor.hpp"
+
 namespace mlr {
 
 class layer {
-private:
+public:
 
 public:
     layer() = default;

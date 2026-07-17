@@ -6,7 +6,7 @@ namespace mlr {
     
 // TODO: implement
 class dense_layer : public layer {
-
+    
 };
 
-}
+} // namespace mlr
