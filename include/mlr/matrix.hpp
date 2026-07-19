@@ -1,137 +1,118 @@
 #pragma once
 
-#include <array>
-#include <algorithm>
-#include <initializer_list>
 #include <cstddef>
+#include <initializer_list>
+#include <stdexcept>
+#include <vector>
 
-#include "vector.hpp"
 #include "tensor.hpp"
+#include "vector.hpp"
 
 namespace mlr {
 
-template<std::size_t rows, std::size_t cols>
-class matrix : public tensor<2, rows*cols> {
+class matrix : public tensor {
 public:
     matrix() = default;
-    matrix(std::initializer_list<double> init) : tensor<2, rows*cols>(init) {}
-
     ~matrix() = default;
 
-public:
-    constexpr std::size_t width() const noexcept {
-        return cols;
-    }
+    matrix(std::size_t rows, std::size_t cols) : tensor({rows, cols}) {}
+    matrix(std::size_t rows, std::size_t cols, double fill_value) : tensor({rows, cols}, fill_value) {}
 
-    constexpr std::size_t height() const noexcept {
-        return rows;
-    }
+    matrix(std::size_t rows, std::size_t cols, std::initializer_list<double> init) : tensor({rows, cols}, std::vector<double>(init)) {}
 
 public:
-    constexpr double& operator()(std::size_t row, std::size_t col) noexcept {
-        return this->mem[row * cols + col];
-    }
-
-    constexpr const double& operator()(std::size_t row, std::size_t col) const noexcept {
-        return this->mem[row * cols + col];
-    }
+    [[nodiscard]] std::size_t rows() const noexcept { return shape()[0]; }
+    [[nodiscard]] std::size_t cols() const noexcept { return shape()[1]; }
 
 public:
-    matrix operator+(const matrix& rhs) const {
-        matrix result;
+    double& operator()(std::size_t r, std::size_t c) noexcept { return (*this)[r * cols() + c]; }
+    const double& operator()(std::size_t r, std::size_t c) const noexcept { return (*this)[r * cols() + c]; }
 
-        for (std::size_t r = 0; r < rows; ++r) {
-            for (std::size_t c = 0; c < cols; ++c) {
-                result(r, c) = (*this)(r, c) + rhs(r, c);
-            }
-        }
+public:
+    [[nodiscard]] static matrix zero(std::size_t rows, std::size_t cols) {
+        return matrix(rows, cols, 0.0);
+    }
 
+    [[nodiscard]] static matrix identity(std::size_t n) {
+        matrix result(n, n, 0.0);
+        for (std::size_t i = 0; i < n; ++i)
+            result(i, i) = 1.0;
         return result;
     }
 
-    matrix& operator+=(const matrix& rhs) {
-        for (std::size_t r = 0; r < rows; ++r) {
-            for (std::size_t c = 0; c < cols; ++c) {
-                (*this)(r, c) += rhs(r, c);
-            }
-        }
+public:
+    matrix operator+(const matrix& rhs) const { matrix r = *this; r += rhs; return r; }
+    matrix& operator+=(const matrix& rhs) { tensor::operator+=(rhs); return *this; }
 
-        return *this;
-    }
+    matrix operator-(const matrix& rhs) const { matrix r = *this; r -= rhs; return r; }
+    matrix& operator-=(const matrix& rhs) { tensor::operator-=(rhs); return *this; }
 
-    matrix operator-(const matrix& rhs) const {
-        matrix result;
+public:
+    matrix operator*(double scalar) const { matrix r = *this; r *= scalar; return r; }
+    matrix& operator*=(double scalar) { tensor::operator*=(scalar); return *this; }
 
-        for (std::size_t r = 0; r < rows; ++r) {
-            for (std::size_t c = 0; c < cols; ++c) {
-                result(r, c) = (*this)(r, c) - rhs(r, c);
-            }
-        }
+    matrix operator/(double scalar) const { matrix r = *this; r /= scalar; return r; }
+    matrix& operator/=(double scalar) { tensor::operator/=(scalar); return *this; }
 
-        return result;
-    }
+public:
+    matrix operator*(const matrix& rhs) const {
+        if (cols() != rhs.rows())
+            throw std::invalid_argument("matrix::operator*: invalid dimensions!");
 
-    matrix operator*(double scalar) const {
-        matrix result = *this;
-
-        for (auto& value : result.mem)
-            value *= scalar;
-
-        return result;
-    }
-
-    template<std::size_t other_cols>
-    matrix<rows, other_cols> operator*(const matrix<cols, other_cols>& rhs) const {
-        matrix<rows, other_cols> result;
-
-        for (std::size_t r = 0; r < rows; ++r) {
-            for (std::size_t c = 0; c < other_cols; ++c) {
-
+        matrix result(rows(), rhs.cols(), 0.0);
+        for (std::size_t r = 0; r < rows(); ++r) {
+            for (std::size_t c = 0; c < rhs.cols(); ++c) {
                 double sum = 0.0;
-
-                for (std::size_t k = 0; k < cols; ++k) {
+                for (std::size_t k = 0; k < cols(); ++k)
                     sum += (*this)(r, k) * rhs(k, c);
-                }
-
                 result(r, c) = sum;
             }
         }
-
         return result;
     }
 
-    vector<rows> operator*(const vector<cols>& rhs) const {
-        vector<rows> result;
+    vector operator*(const vector& rhs) const {
+        if (cols() != rhs.size())
+            throw std::invalid_argument("matrix::operator*: dimensiones invalid dimensions!");
 
-        for (std::size_t r = 0; r < rows; ++r) {
+        vector result(rows());
+        for (std::size_t r = 0; r < rows(); ++r) {
             double sum = 0.0;
-
-            for (std::size_t c = 0; c < cols; ++c) {
-                sum += (*this)(r, c) * rhs[c];
-            }
-
-            result[r] = sum;
+            for (std::size_t c = 0; c < cols(); ++c)
+                sum += (*this)(r, c) * rhs(c);
+            result(r) = sum;
         }
-
         return result;
     }
 
-    matrix<cols, rows> transpose() const {
-        matrix<cols, rows> result;
+public:
+    [[nodiscard]] 
+    vector row(std::size_t r) const {
+        vector result(cols());
+        for (std::size_t c = 0; c < cols(); ++c)
+            result(c) = (*this)(r, c);
+        return result;
+    }
 
-        for (std::size_t r = 0; r < rows; ++r) {
-            for (std::size_t c = 0; c < cols; ++c) {
+    [[nodiscard]] 
+    vector col(std::size_t c) const {
+        vector result(rows());
+        for (std::size_t r = 0; r < rows(); ++r)
+            result(r) = (*this)(r, c);
+        return result;
+    }
+
+public:
+    [[nodiscard]] 
+    matrix transpose() const {
+        matrix result(cols(), rows());
+        for (std::size_t r = 0; r < rows(); ++r)
+            for (std::size_t c = 0; c < cols(); ++c)
                 result(c, r) = (*this)(r, c);
-            }
-        }
-
         return result;
     }
 };
 
-template<std::size_t rows, std::size_t cols>
-matrix<rows, cols> operator*(double scalar, const matrix<rows, cols>& mat) {
-    return mat * scalar;
-}
+inline matrix operator*(double scalar, const matrix& m) { return m * scalar; }
 
 } // namespace mlr
