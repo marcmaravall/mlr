@@ -30,7 +30,7 @@ public:
 public:
     [[nodiscard]] double dot(const vector& other) const {
         if (size() != other.size())
-            throw std::invalid_argument("vector::dot: invalid dimensions");
+            throw std::invalid_argument("vector::dot: invalid dimensions!");
         double sum = 0.0;
         for (std::size_t i = 0; i < size(); ++i)
             sum += (*this)[i] * other[i];

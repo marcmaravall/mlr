@@ -90,7 +90,7 @@ public:
     vector row(std::size_t r) const {
         vector result(cols());
         for (std::size_t c = 0; c < cols(); ++c)
-            result(c) = (*this)(r, c);
+            result[c] = (*this)(r, c);
         return result;
     }
 
@@ -98,7 +98,7 @@ public:
     vector col(std::size_t c) const {
         vector result(rows());
         for (std::size_t r = 0; r < rows(); ++r)
-            result(r) = (*this)(r, c);
+            result[r] = (*this)(r, c);
         return result;
     }
 
