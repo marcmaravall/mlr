@@ -5,6 +5,7 @@
 #include "vector.hpp"
 #include "tensor.hpp"
 
+#include <memory>
 #include <initializer_list>
 
 namespace mlr {
@@ -12,15 +13,11 @@ namespace mlr {
 // TODO: change name 
 class nnetwork {
 private:
-    // FIXME: convert to unique ptr
-    std::vector<layer*> m_layers;
+    std::vector<std::unique_ptr<layer>> m_layers;
 
 public:
     nnetwork() = default;
-    ~nnetwork() {
-        for (layer* l : m_layers)
-            delete l;
-    }
+    ~nnetwork() = default;
 
 public:
     tensor forward(const tensor& input) {
@@ -45,6 +42,14 @@ public:
         return g;
     }
 
+    double loss(const vector& pred, const vector& expected) {
+        double res = 0;
+        for (std::size_t i = 0; i < pred.size(); i++)
+            res += std::pow(pred[i] - expected[i], 2);
+
+        return res / pred.size();
+    }
+
     void train(const std::vector<vector>& xs, const std::vector<vector>& ys, double lr, std::size_t epochs) {
         for (std::size_t epoch = 0; epoch < epochs; ++epoch) {
             for (std::size_t sample = 0; sample < xs.size(); ++sample) {
@@ -59,7 +64,7 @@ public:
 
                 // update
                 for (auto& l : m_layers) {
-                    if (auto* dense = dynamic_cast<dense_layer*>(l))
+                    if (auto* dense = dynamic_cast<dense_layer*>(l.get()))
                         dense->update(lr);
                 }
             }
@@ -68,15 +73,13 @@ public:
 
 
 public:
-    layer* add(layer* layer) noexcept {
-        m_layers.push_back(layer);
-        return layer;
+    void add(std::unique_ptr<layer> layer) noexcept {
+        m_layers.push_back(std::move(layer));
     }
 
-    nnetwork(std::initializer_list<layer*> layers) {
-        for (layer* l : layers) {
-            m_layers.push_back((l));
-        }
+    template<typename... Layers>
+    nnetwork(Layers&&... layers) {
+        (m_layers.emplace_back(std::forward<Layers>(layers)), ...);
     }
 };
 

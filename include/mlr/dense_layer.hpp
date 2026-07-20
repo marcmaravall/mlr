@@ -52,7 +52,7 @@ private:
 
 public:
     dense_layer() = default;
-    ~dense_layer() override = default;
+    ~dense_layer() noexcept override = default;
 
     dense_layer(std::size_t in_features, std::size_t out_features, unsigned seed = std::random_device{}())
         : m_in_features(in_features), m_out_features(out_features) {

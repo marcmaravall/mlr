@@ -11,6 +11,10 @@ private:
     vector m_last_input {};
 
 public:
+    relu_layer() = default;
+    ~relu_layer() override = default;
+
+public:
     [[nodiscard]] constexpr static double relu(double x) { return (x > 0.0) ? x : 0.0; } 
 
 public:

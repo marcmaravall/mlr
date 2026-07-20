@@ -11,6 +11,7 @@ namespace mlr {
 class sigmoid_layer : public layer {
 private:
     vector m_last_output {};
+    ~sigmoid_layer() override = default;
 
 private:
     static double sigmoid(double x) { return 1.0 / (1.0 + std::exp(-x)); }
