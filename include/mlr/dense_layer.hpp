@@ -12,6 +12,14 @@
 
 namespace mlr {
 
+enum class initialization {
+    zero,
+    xavier,
+    kaiming,
+    orthogonal,
+    // load_file
+};
+
 class dense_layer : public layer {
 private:
     // input vector size
@@ -30,7 +38,7 @@ private:
     vector m_last_input {};
 
 private:
-    void init_parameters(unsigned seed = std::random_device{}()) {
+    void init_parameters(unsigned seed = std::random_device{}(), initialization init = initialization::xavier) {
         m_initialized = true;
         
         m_weights = matrix(m_out_features, m_in_features);

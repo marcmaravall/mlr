@@ -11,6 +11,9 @@ namespace mlr {
 class sigmoid_layer : public layer {
 private:
     vector m_last_output {};
+
+public:
+    sigmoid_layer() = default;
     ~sigmoid_layer() override = default;
 
 private:

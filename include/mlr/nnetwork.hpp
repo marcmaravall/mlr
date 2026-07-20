@@ -10,14 +10,19 @@
 
 namespace mlr {
 
-// TODO: change name 
-class nnetwork {
+class sequential {
 private:
     std::vector<std::unique_ptr<layer>> m_layers;
 
 public:
-    nnetwork() = default;
-    ~nnetwork() = default;
+    sequential() = default;
+    
+    template<typename... Layers>
+    sequential(Layers&&... layers) {
+        (m_layers.emplace_back(std::forward<Layers>(layers)), ...);
+    }
+
+    ~sequential() = default;
 
 public:
     tensor forward(const tensor& input) {
@@ -71,15 +76,14 @@ public:
         }
     }
 
+public:
+    vector operator()(const vector& inp) {
+        return utils::to_vector(forward(utils::to_vector(inp)));
+    }
 
 public:
     void add(std::unique_ptr<layer> layer) noexcept {
         m_layers.push_back(std::move(layer));
-    }
-
-    template<typename... Layers>
-    nnetwork(Layers&&... layers) {
-        (m_layers.emplace_back(std::forward<Layers>(layers)), ...);
     }
 };
 
