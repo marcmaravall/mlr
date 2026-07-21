@@ -5,8 +5,9 @@
 #include "dense_layer.hpp"
 #include "relu_layer.hpp"
 #include "sigmoid_layer.hpp"
+#include "softmax_layer.hpp"
 
-#include "nnetwork.hpp"
+#include "sequential.hpp"
 
 #include "tensor.hpp"
 #include "vector.hpp"

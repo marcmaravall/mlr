@@ -39,6 +39,14 @@ public:
         return grad;
     }
 
+private:
+    void update(double lr) {
+        for (auto& l : m_layers) {
+            if (auto* dense = dynamic_cast<dense_layer*>(l.get()))
+                dense->update(lr);
+        }
+    }
+
 public:
     vector mse_grad(const vector& pred, const vector& expected) {
         vector g(pred.size());
@@ -47,16 +55,18 @@ public:
         return g;
     }
 
-    double loss(const vector& pred, const vector& expected) {
+    double mse(const vector& pred, const vector& expected) {
         double res = 0;
         for (std::size_t i = 0; i < pred.size(); i++)
             res += std::pow(pred[i] - expected[i], 2);
 
-        return res / pred.size();
+        return res / static_cast<double>(pred.size());
     }
 
-    void train(const std::vector<vector>& xs, const std::vector<vector>& ys, double lr, std::size_t epochs) {
+    // TODO: set verbose to a bitflag for more options
+    void train(const std::vector<vector>& xs, const std::vector<vector>& ys, double lr, std::size_t epochs, bool verbose = false) {
         for (std::size_t epoch = 0; epoch < epochs; ++epoch) {
+            double epoch_loss = 0.0;
             for (std::size_t sample = 0; sample < xs.size(); ++sample) {
                 tensor pred = forward(xs[sample]);
  
@@ -64,14 +74,16 @@ public:
                 for (std::size_t i = 0; i < y_pred.size(); ++i)
                     y_pred[i] = pred.at({i});
  
+                epoch_loss += mse(y_pred, ys[sample]);
                 vector grad = mse_grad(y_pred, ys[sample]);
                 backward(grad);
 
-                // update
-                for (auto& l : m_layers) {
-                    if (auto* dense = dynamic_cast<dense_layer*>(l.get()))
-                        dense->update(lr);
-                }
+                update(lr);
+            }
+
+            if (verbose && (epoch+1) % 100 == 0) {
+                epoch_loss /= xs.size(); 
+                std::cout << "[info] Epoch " << (epoch + 1) << "/" << epochs << " - Loss: " << epoch_loss << '\n';
             }
         }
     }

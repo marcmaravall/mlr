@@ -123,11 +123,11 @@ public:
     dense_layer() = default;
     ~dense_layer() noexcept override = default;
 
-    dense_layer(std::size_t in_features, std::size_t out_features)
+    dense_layer(std::size_t in_features, std::size_t out_features, initialization init = initialization::xavier)
         : m_in_features(in_features), m_out_features(out_features) {
         if (in_features == 0 || out_features == 0)
             throw std::invalid_argument("dense_layer: in_features and out_features must be > 0");
-        init_parameters();
+        init_parameters(initialization::xavier);
     }
 
 public:
