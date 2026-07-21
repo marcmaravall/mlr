@@ -15,7 +15,8 @@ namespace mlr {
 enum class initialization {
     zero,
     xavier,
-    kaiming,
+    kaiming_normal,
+    kaiming_uniform,
     orthogonal,
     // load_file
 };
@@ -38,9 +39,44 @@ private:
     vector m_last_input {};
 
 private:
-    void init_parameters(unsigned seed = std::random_device{}(), initialization init = initialization::xavier) {
-        m_initialized = true;
-        
+    void zero_init() {
+        m_weights = matrix(m_out_features, m_in_features, 0.0);
+        m_bias = vector(m_out_features, 0.0);
+    }
+
+    // TODO: merge the two functions and only change distribution
+    void kaiming_normal_init(unsigned seed = std::random_device{}()) {
+        m_weights = matrix(m_out_features, m_in_features);
+        m_bias = vector(m_out_features, 0.0);
+
+        double bound = std::sqrt(2.0 / static_cast<double>(m_in_features));
+        std::mt19937 rng(seed);
+        std::normal_distribution<double> dist(0, bound);
+
+        for (std::size_t o = 0; o < m_out_features; ++o)
+            for (std::size_t i = 0; i < m_in_features; ++i)
+                m_weights(o, i) = dist(rng);
+    }
+
+    void kaiming_uniform_init(unsigned seed = std::random_device{}()) {
+        m_weights = matrix(m_out_features, m_in_features);
+        m_bias = vector(m_out_features, 0.0);
+
+        double bound = std::sqrt(6.0 / static_cast<double>(m_in_features));
+        std::mt19937 rng(seed);
+        std::uniform_real_distribution<double> dist(-bound, bound);
+
+        for (std::size_t o = 0; o < m_out_features; ++o)
+            for (std::size_t i = 0; i < m_in_features; ++i)
+                m_weights(o, i) = dist(rng);
+    }
+
+    // TODO: implement
+    void orthogonal_init() {
+        throw new std::runtime_error("dense_layer::orthogonal_init is not implemented!");
+    }
+
+    void xavier_init(unsigned seed = std::random_device{}()) {
         m_weights = matrix(m_out_features, m_in_features);
         m_bias = vector(m_out_features, 0.0);
 
@@ -53,7 +89,32 @@ private:
         for (std::size_t o = 0; o < m_out_features; ++o)
             for (std::size_t i = 0; i < m_in_features; ++i)
                 m_weights(o, i) = dist(rng);
+    }
 
+    void init_parameters(initialization init = initialization::xavier) {
+        m_initialized = true;
+        switch(init) {
+        case initialization::xavier: 
+            xavier_init(); 
+            break;
+        case initialization::zero:
+            zero_init();
+            break;
+        case initialization::kaiming_normal:
+            kaiming_normal_init();
+            break;
+        case initialization::kaiming_uniform:
+            kaiming_uniform_init();
+            break;
+        case initialization::orthogonal:
+            orthogonal_init();
+            break;
+
+        default:    // default initialiation:
+            zero_init();
+        }
+
+        // gradients are always initialized to 0
         m_grad_weights = matrix(m_out_features, m_in_features, 0.0);
         m_grad_bias = vector(m_out_features, 0.0);
     }
@@ -62,11 +123,11 @@ public:
     dense_layer() = default;
     ~dense_layer() noexcept override = default;
 
-    dense_layer(std::size_t in_features, std::size_t out_features, unsigned seed = std::random_device{}())
+    dense_layer(std::size_t in_features, std::size_t out_features)
         : m_in_features(in_features), m_out_features(out_features) {
         if (in_features == 0 || out_features == 0)
             throw std::invalid_argument("dense_layer: in_features and out_features must be > 0");
-        init_parameters(seed);
+        init_parameters();
     }
 
 public:
