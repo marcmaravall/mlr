@@ -5,6 +5,7 @@
 #include "vector.hpp"
 
 #include <cmath>
+#include <limits>
 #include <math.h>
 
 namespace mlr {
@@ -17,20 +18,22 @@ public:
     softmax_layer() = default;
     ~softmax_layer() override = default;
 
-private:
-
-
 public:
     tensor forward(const tensor& input) override {
         vector res = utils::to_vector(input);
         
-        double sum = 0.0;
+        double m = std::numeric_limits<double>::min();
         const int n = input.size();
-        for (int i = 0; i < n; i++)
-            sum += std::exp(input[i]);
+        for (int i = 0; i < n; i++) {
+            m = std::max(m, input[i]);
+        }
+        double sum = 0.0;
+        for (int i = 0; i < n; i++) {
+            sum += std::exp(input[i]-m);
+        }    
 
         for (double& v : res) {
-            v = std::exp(v)/sum;
+            v = std::exp(v-m)/sum;
         }
     
         m_last_output = res;
@@ -41,7 +44,7 @@ public:
         vector grad = utils::to_vector(grad_output);
 
         const int n = grad.size();
-        vector grad_input(n);
+        vector res(n);
 
         double dot = 0.0;
         for (size_t i = 0; i < n; i++) {
@@ -49,10 +52,10 @@ public:
         }
 
         for (size_t i = 0; i < n; i++) {
-            grad_input[i] = m_last_output[i]*(grad[i]-dot);
+            res[i] = m_last_output[i]*(grad[i]-dot);
         }
 
-        return grad_input;
+        return res;
     }
 
 public:

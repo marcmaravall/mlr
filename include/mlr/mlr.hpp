@@ -6,6 +6,7 @@
 #include "relu_layer.hpp"
 #include "sigmoid_layer.hpp"
 #include "softmax_layer.hpp"
+#include "tanh_layer.hpp"
 
 #include "sequential.hpp"
 
