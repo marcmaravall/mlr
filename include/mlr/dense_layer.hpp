@@ -80,8 +80,6 @@ private:
         m_weights = matrix(m_out_features, m_in_features);
         m_bias = vector(m_out_features, 0.0);
 
-        // xavier initializarion:   
-        // https://www.geeksforgeeks.org/deep-learning/xavier-initialization/
         const double limit = std::sqrt(6.0 / static_cast<double>(m_in_features + m_out_features));
         std::mt19937 rng(seed);
         std::uniform_real_distribution<double> dist(-limit, limit);
@@ -127,7 +125,7 @@ public:
         : m_in_features(in_features), m_out_features(out_features) {
         if (in_features == 0 || out_features == 0)
             throw std::invalid_argument("dense_layer: in_features and out_features must be > 0");
-        init_parameters(initialization::xavier);
+        init_parameters(init);
     }
 
 public:

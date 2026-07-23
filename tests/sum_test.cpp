@@ -1,4 +1,4 @@
-// MLR XOR TEST
+// MLR SUM TEST
 
 #include <iostream>
 #include <memory>
@@ -31,7 +31,7 @@ int main() {
     const double learning_rate = 0.01;
     const std::size_t epochs = 10000;
 
-    std::cout << "MLR XOR TEST: \n";
+    std::cout << "MLR SUM TEST: \n";
     std::cout << "epochs: " << epochs << "\n";
     std::cout << "learning rate: " << learning_rate << "\n\n";
 
