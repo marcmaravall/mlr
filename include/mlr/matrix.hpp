@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <initializer_list>
 #include <stdexcept>
-#include <vector>
 
 #include "tensor.hpp"
 #include "vector.hpp"
@@ -21,8 +20,8 @@ public:
     matrix(std::size_t rows, std::size_t cols, std::initializer_list<double> init) : tensor({rows, cols}, std::vector<double>(init)) {}
 
 public:
-    [[nodiscard]] std::size_t rows() const noexcept { return shape()[0]; }
-    [[nodiscard]] std::size_t cols() const noexcept { return shape()[1]; }
+    [[nodiscard]] std::size_t rows() const noexcept { return shape(0); }
+    [[nodiscard]] std::size_t cols() const noexcept { return shape(1); }
 
 public:
     double& operator()(std::size_t r, std::size_t c) noexcept { return (*this)[r * cols() + c]; }

@@ -38,6 +38,9 @@ private:
     vector m_grad_bias {};
     vector m_last_input {};
 
+    vector m_input_buffer {};
+    vector m_grad_input_buffer{};
+
 private:
     void zero_init() {
         m_weights = matrix(m_out_features, m_in_features, 0.0);
@@ -73,7 +76,7 @@ private:
 
     // TODO: implement
     void orthogonal_init() {
-        throw new std::runtime_error("dense_layer::orthogonal_init is not implemented!");
+        throw std::runtime_error("dense_layer::orthogonal_init is not implemented!");
     }
 
     void xavier_init(unsigned seed = std::random_device{}()) {
@@ -125,17 +128,22 @@ public:
         : m_in_features(in_features), m_out_features(out_features) {
         if (in_features == 0 || out_features == 0)
             throw std::invalid_argument("dense_layer: in_features and out_features must be > 0");
+        
+        m_input_buffer = vector(m_in_features);
+        m_grad_input_buffer = vector(m_in_features);
+
         init_parameters(init);
     }
 
 public:
+    // TODO: optimize forward:
     tensor forward(const tensor& input) override {
         if (!m_initialized)
             throw std::runtime_error("dense_layer::forward: layer not initialized (use the sized constructor)");
-        const vector inp = utils::to_vector(input, m_in_features, "dense_layer::forward");
+        utils::to_vector_into(m_input_buffer, input, m_in_features, "dense_layer::forward");
         
-        vector res = m_weights*inp + m_bias;
-        m_last_input = inp;
+        vector res = m_weights*m_input_buffer + m_bias;
+        m_last_input = m_input_buffer;
         return res;
     }
 
@@ -145,23 +153,39 @@ public:
         if (m_last_input.empty())
             throw std::runtime_error("dense_layer::backward: forward() must be called before backward()");
 
-        const vector g = utils::to_vector(grad_output, m_out_features, "dense_layer::backward");
+        utils::to_vector_into(m_grad_bias, grad_output, m_out_features, "dense_layer::backward");
 
-        m_grad_bias = g;
-
-        m_grad_weights = matrix(m_out_features, m_in_features);
         for (std::size_t o = 0; o < m_out_features; ++o)
             for (std::size_t i = 0; i < m_in_features; ++i)
-                m_grad_weights(o, i) = g(o) * m_last_input(i);
+                m_grad_weights(o, i) = m_grad_bias(o) * m_last_input(i);
+        
+        for (std::size_t i = 0; i < m_in_features; ++i)
+            m_grad_input_buffer(i) = 0.0;
+        for (std::size_t o = 0; o < m_out_features; ++o)
+            for (std::size_t i = 0; i < m_in_features; ++i)
+                m_grad_input_buffer(i) += m_weights(o, i) * m_grad_bias(o);
 
-        vector grad_input = m_weights.transpose() * g;
-        return grad_input;
+        return m_grad_input_buffer;
     }
+
+    /*
+    void forward_into(tensor& out, const tensor& input) override {
+        if (!m_initialized)
+            throw std::runtime_error("dense_layer::forward_into: layer not initialized (use the sized constructor)");
+    }
+
+    void backward_into(tensor& out, const tensor& input) override {
+        if (!m_initialized)
+            throw std::runtime_error("dense_layer::backward_into: layer not initialized (use the sized constructor)");
+    }*/
 
 public:
     void update(double learning_rate) override {
-        m_weights -= learning_rate * m_grad_weights;
-        m_bias -= learning_rate * m_grad_bias;
+        for (std::size_t o = 0; o < m_out_features; ++o) {
+            for (std::size_t i = 0; i < m_in_features; ++i)
+                m_weights(o, i) -= learning_rate * m_grad_weights(o, i);
+            m_bias(o) -= learning_rate * m_grad_bias(o);
+        }
     }
 
 public:

@@ -4,9 +4,11 @@
 #include "dense_layer.hpp"
 #include "vector.hpp"
 #include "tensor.hpp"
+#include "utils.hpp"
 
 #include <memory>
 #include <initializer_list>
+#include <iostream>
 
 namespace mlr {
 
@@ -16,7 +18,6 @@ private:
 
 public:
     sequential() = default;
-    
     template<typename... Layers>
     sequential(Layers&&... layers) {
         (m_layers.emplace_back(std::forward<Layers>(layers)), ...);
@@ -41,48 +42,56 @@ public:
 
 private:
     void update(double lr) {
-        for (auto& l : m_layers) {
-            if (auto* dense = dynamic_cast<dense_layer*>(l.get()))
-                dense->update(lr);
-        }
+        for (auto& l : m_layers)
+            l->update(lr);
     }
 
 public:
     vector mse_grad(const vector& pred, const vector& expected) {
         vector g(pred.size());
+        mse_grad_into(g, pred, expected);
+        return g;
+    }
+
+    void mse_grad_into(vector& g, const vector& pred, const vector& expected) {
         for (std::size_t i = 0; i < g.size(); ++i)
             g[i] = 2.0 * (pred[i] - expected[i]) / static_cast<double>(g.size());
-        return g;
     }
 
     double mse(const vector& pred, const vector& expected) {
         double res = 0;
-        for (std::size_t i = 0; i < pred.size(); i++)
-            res += std::pow(pred[i] - expected[i], 2);
+        for (std::size_t i = 0; i < pred.size(); i++) {
+            double v = pred[i]-expected[i];
+            res += v*v;
+        }
 
         return res / static_cast<double>(pred.size());
     }
 
     // TODO: set verbose to a bitflag for more options
     void train(const std::vector<vector>& xs, const std::vector<vector>& ys, double lr, std::size_t epochs, bool verbose = false) {
+        if (xs.empty() || ys.empty())
+            return;
+
+        vector y_pred(ys[0].size());
+        vector grad(y_pred.size());
+
         for (std::size_t epoch = 0; epoch < epochs; ++epoch) {
             double epoch_loss = 0.0;
             for (std::size_t sample = 0; sample < xs.size(); ++sample) {
                 tensor pred = forward(xs[sample]);
- 
-                vector y_pred(pred.shape()[0]);
                 for (std::size_t i = 0; i < y_pred.size(); ++i)
-                    y_pred[i] = pred.at({i});
- 
+                    y_pred[i] = pred[i];
+
                 epoch_loss += mse(y_pred, ys[sample]);
-                vector grad = mse_grad(y_pred, ys[sample]);
+                mse_grad_into(grad, y_pred, ys[sample]);
                 backward(grad);
 
                 update(lr);
             }
 
             if (verbose && (epoch+1) % 100 == 0) {
-                epoch_loss /= xs.size(); 
+                epoch_loss /= xs.size();
                 std::cout << "[info] Epoch " << (epoch + 1) << "/" << epochs << " - Loss: " << epoch_loss << '\n';
             }
         }
@@ -90,7 +99,7 @@ public:
 
 public:
     vector operator()(const vector& inp) {
-        return utils::to_vector(forward(utils::to_vector(inp)));
+        return utils::to_vector(forward(inp));
     }
 
 public:
